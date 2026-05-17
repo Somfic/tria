@@ -104,6 +104,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ai_sandbox"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "common",
+ "goap",
+]
+
+[[package]]
 name = "alsa"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2698,6 +2707,10 @@ dependencies = [
 [[package]]
 name = "goap"
 version = "0.1.0"
+dependencies = [
+ "bevy",
+ "common",
+]
 
 [[package]]
 name = "gpu-alloc"
@@ -3404,10 +3417,6 @@ name = "nonmax"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "610a5acd306ec67f907abe5567859a3c693fb9886eb1f012ab8f2a47bef3db51"
-
-[[package]]
-name = "npc"
-version = "0.1.0"
 
 [[package]]
 name = "ntapi"

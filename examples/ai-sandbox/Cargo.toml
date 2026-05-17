@@ -1,8 +1,9 @@
 [package]
-name = "goap"
+name = "ai_sandbox"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 common = { workspace = true }
+goap = { workspace = true }
 bevy = { workspace = true }
