@@ -60,7 +60,7 @@
 use bevy::asset::{Assets, Handle, RenderAssetUsages};
 use bevy::image::{Image, ImageSampler, ImageSamplerDescriptor};
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use pixelsim::{CHUNK_PX, FLAG_SLEEPING, Layer, MaterialTable};
+use pixelsim::{CHUNK_PX, FLAG_SLEEPING, Layer, MaterialClass, MaterialTable};
 
 use crate::palette::{Palette, grain_jitter, grain_of, speckle_byte};
 use crate::schematic::SchematicCache;
@@ -497,7 +497,7 @@ impl LayerCanvas {
             let (grain, lut) = cache.split(table);
             for &r in touched.iter() {
                 bake_rect(
-                    dst, tw, r, layer, pal, &pt, grain, lut, step, sleep_mask, outline,
+                    dst, tw, r, layer, table, pal, &pt, grain, lut, step, sleep_mask, outline,
                 );
             }
         }
@@ -761,6 +761,30 @@ impl TreatLut {
     }
 }
 
+/// Wetness a submerged powder is drawn at before it has absorbed anything of its own — a
+/// grain underwater reads as soaked because it is, even though the conserved wetness
+/// channel is still zero. Close to the ~240 an absorbed bed reaches, so a sinking grain and
+/// the deposit that later lands on it look the same rather than popping from dry to wet.
+const SUBMERGED_WET: u8 = 210;
+
+/// `true` when the powder at `(x, y)` has a liquid cell against one of its four faces, i.e.
+/// it is sitting in water. A display cue only — absorption still owns the wetness channel.
+#[inline]
+fn submerged_powder(l: &Layer, table: &MaterialTable, m: u8, x: u16, y: u16) -> bool {
+    if table.class(m) != MaterialClass::Powder {
+        return false;
+    }
+    for (dx, dy) in [(0i32, 1i32), (0, -1), (1, 0), (-1, 0)] {
+        let (nx, ny) = (x as i32 + dx, y as i32 + dy);
+        if l.in_bounds(nx, ny)
+            && table.class(l.mat_at(nx as u16, ny as u16)) == MaterialClass::Liquid
+        {
+            return true;
+        }
+    }
+    false
+}
+
 /// Bake one inclusive cell rect into `rgba`.
 ///
 /// `step` is the `half_res` stride: one cell is sampled per `step`x`step` block and the
@@ -771,6 +795,7 @@ fn bake_rect(
     tw: u16,
     rect: Rect,
     layer: &Layer,
+    table: &MaterialTable,
     pal: &Palette,
     pt: &PixelTreat,
     grain: &[(f32, u8); 256],
@@ -796,10 +821,22 @@ fn bake_rect(
                 ([0u8, 0, 0], 0u8)
             } else {
                 let (amp, shift) = grain[m as usize];
+                // A powder sitting in water reads as wet even before it has absorbed a
+                // thing: it is underwater. Absorption still owns the wetness *channel* and
+                // the conserved water budget — this only lifts the drawn value so a grain
+                // does not look bone dry while submerged (a lone grain never reaches the
+                // whole-cell capacity absorption needs, so its channel stays 0 for good).
+                let wet = if layer.wetness[i] < SUBMERGED_WET
+                    && submerged_powder(layer, table, m, x, y)
+                {
+                    SUBMERGED_WET
+                } else {
+                    layer.wetness[i]
+                };
                 // Aux channels are zero for almost every cell, and when they are, the
                 // whole per-pixel chain collapses to a table lookup. `susp_mat` only
                 // speaks through `susp_conc`; `charred` and `head` are not read at all.
-                let aux = layer.wetness[i]
+                let aux = wet
                     | layer.dirt[i]
                     | layer.wear[i]
                     | layer.susp_conc[i]
@@ -815,7 +852,7 @@ fn bake_rect(
                     let rgb = pal.cell_color(
                         m,
                         layer.flags[i] & sleep_mask,
-                        layer.wetness[i],
+                        wet,
                         layer.dirt[i],
                         layer.wear[i],
                         layer.susp_mat[i],

@@ -8,8 +8,13 @@ use crate::repose::ReposeLut;
 use crate::slurry;
 use crate::step::for_awake_cells_bottom_up;
 
-/// grains finer than this entrain into a liquid instead of displacing it (µm)
-pub const ENTRAIN_GRAIN_UM: f32 = 300.0;
+/// grains finer than this entrain into a liquid instead of displacing it (µm).
+///
+/// Set above sand (400 µm) so sand clouds into suspension and slowly settles back out the
+/// same way the finer powders do — `v_settle` already puts sand at ~0.32 cells/tick, a
+/// visible ooze rather than a drop. Kept below grit (1200 µm), which is coarse enough to
+/// just displace the water and sink.
+pub const ENTRAIN_GRAIN_UM: f32 = 500.0;
 /// how far up a column is probed when measuring the local slope
 pub const COLUMN_PROBE: u16 = 4;
 

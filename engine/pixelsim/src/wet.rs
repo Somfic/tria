@@ -161,7 +161,20 @@ pub fn step_wet(layer: &mut Layer, table: &MaterialTable, tick: u64) {
                     // runs down through soaked cardboard and climbs its dry edges — so the
                     // two share the arm. The `absorbent` test keeps stone and tin out.
                     MaterialClass::Powder | MaterialClass::Solid => {
-                        if layer.wetness[i] == 0 || !absorbent(table, layer.mat[i]) {
+                        if !absorbent(table, layer.mat[i]) {
+                            continue;
+                        }
+                        // A dry grain sitting in water soaks from the side it touches, not
+                        // just from a pool draining down onto it or a deposit landing on
+                        // top. `absorb_cell` runs from the *water* side and skips cloudy
+                        // water, so a grain that sank through a suspension cloud used to
+                        // stay bone dry until the dust settled onto it — the "only wet once
+                        // dust touches it" report. This wets it from contact instead.
+                        if layer.wetness[i] == 0 {
+                            if soak_submerged(layer, table, x, y) {
+                                work = true;
+                                moved = true;
+                            }
                             continue;
                         }
                         work = true;
@@ -391,6 +404,48 @@ fn absorb_cell(
     l.touch(x, y);
     inject_wetness(l, table, cx, cy, ABSORB_UNITS);
     true
+}
+
+/// A dry absorbent cell sitting against water drinks one clean neighbouring cell into its
+/// own patch — the powder-side twin of [`absorb_cell`].
+///
+/// Same conservation contract: it consumes a whole liquid cell and injects exactly
+/// [`ABSORB_UNITS`], so it cannot mint or lose water and a grain never soaks more than the
+/// patch can hold. The differences are only which side drives it and which water it will
+/// take:
+///
+/// * It runs on the **dry grain**, so a scatter of grains submerged in a pond wet from the
+///   water around them rather than only where a pool drains onto them or a deposit lands on
+///   top — the behaviour that made sand look dry until dust settled on it.
+/// * It refuses **cloudy** water (`susp_conc > 0`), because consuming that cell would
+///   destroy the solids it carries, and prefers a clean neighbour on any side. A lone grain
+///   whose patch cannot hold a whole cell still refuses (its own capacity is one cell's
+///   worth short), and is left to read as wet through the renderer's submerged cue instead.
+#[inline]
+fn soak_submerged(l: &mut Layer, table: &MaterialTable, x: u16, y: u16) -> bool {
+    if patch_capacity(l, table, x, y) < ABSORB_UNITS {
+        return false;
+    }
+    for (dx, dy) in [(0i32, 1i32), (-1, 0), (1, 0), (0, -1)] {
+        let (nx, ny) = (x as i32 + dx, y as i32 + dy);
+        if !l.in_bounds(nx, ny) {
+            continue;
+        }
+        let (nx, ny) = (nx as u16, ny as u16);
+        let ni = l.idx(nx, ny);
+        if table.class(l.mat[ni]) != MaterialClass::Liquid || l.susp_conc[ni] > 0 {
+            continue;
+        }
+        // the clean liquid cell is consumed into this grain's patch, exactly as
+        // `absorb_cell` consumes it from the other side
+        l.mat[ni] = 0;
+        l.flags[ni] = 0;
+        l.clear_aux(ni);
+        l.touch(nx, ny);
+        inject_wetness(l, table, x, y, ABSORB_UNITS);
+        return true;
+    }
+    false
 }
 
 /// How far absorption reaches to find room for a cell of water, as a Chebyshev radius.

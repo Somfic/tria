@@ -112,6 +112,9 @@ pub fn step_layer(
 
     let t = std::time::Instant::now();
     liquid::step_liquid(layer, table);
+    // communicating-vessel equalisation the local rules cannot do: the connected-body
+    // pass that lets water climb the far arm of a U-bend. Folded into `liquid_ms`.
+    liquid::equalize_levels(layer, table);
     layer.stats.liquid_ms = t.elapsed().as_secs_f32() * 1000.0;
 
     let t = std::time::Instant::now();

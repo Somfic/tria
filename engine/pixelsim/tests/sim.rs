@@ -309,6 +309,67 @@ fn water_levels_across_a_basin() {
     assert!(h[127] > 0, "water never reached the right-hand wall");
 }
 
+/// Communicating vessels: water poured into one arm of a U-tube must climb the *other*
+/// arm until the two surfaces are level. The local rules can only move water down or
+/// level, so before `equalize_levels` the filled arm just drained into the connecting
+/// channel and sat there — the empty arm never rose, because nothing in the solver can
+/// lift a cell up a walled shaft. This is the connected-component pass' whole reason to
+/// exist, and the assertion is the level surface plus a hard mass-conservation check.
+#[test]
+fn water_climbs_the_far_arm_of_a_u_tube() {
+    let t = table();
+    let lut = lut();
+    let water = id(&t, "water");
+    let stone = id(&t, "stone");
+
+    let (w, h) = (64u16, 64u16);
+    let mut layer = Layer::new(w, h, LayerSlot::Plant, 7);
+
+    // A U-tube: two vertical shafts joined by a channel under a central divider.
+    let (left_wall, mid, right_wall) = (10u16, 32u16, 54u16);
+    let (top, floor) = (12u16, 56u16); // floor row is `floor`; divider stops short of it
+    for y in top..=floor {
+        layer.set_mat(left_wall, y, stone);
+        layer.set_mat(right_wall, y, stone);
+    }
+    for x in left_wall..=right_wall {
+        layer.set_mat(x, floor, stone);
+    }
+    // central divider leaves the bottom four rows open as the connecting channel
+    for y in top..floor - 4 {
+        layer.set_mat(mid, y, stone);
+    }
+
+    // fill only the left shaft, well above the divider's foot
+    for y in 20..floor {
+        for x in left_wall + 1..mid {
+            layer.set_mat(x, y, water);
+        }
+    }
+    let before = layer.mat.iter().filter(|&&m| m == water).count() as u32;
+
+    let mut layers = vec![layer];
+    tick_n(&mut layers, &t, &lut, 3000);
+    let layer = &layers[0];
+
+    let after = layer.mat.iter().filter(|&&m| m == water).count() as u32;
+    assert_eq!(before, after, "water was created or destroyed equalising a U-tube");
+
+    // surface row of each shaft = topmost water cell in it (smaller row = higher)
+    let surface = |xs: std::ops::Range<u16>| -> Option<u16> {
+        (0..h).find(|&y| xs.clone().any(|x| layer.mat_at(x, y) == water))
+    };
+    let left = surface(left_wall + 1..mid).expect("left shaft emptied entirely");
+    let right = surface(mid + 1..right_wall).expect("water never climbed the right shaft");
+    println!("U-tube surfaces: left row {left}, right row {right}");
+
+    let spread = left.abs_diff(right);
+    assert!(
+        spread <= 2,
+        "the arms never levelled: left surface row {left}, right {right} (spread {spread})"
+    );
+}
+
 #[test]
 fn water_falls_and_a_settled_pool_goes_to_sleep() {
     let t = table();
@@ -839,16 +900,23 @@ fn a_pool_seeps_into_a_deep_bed_until_it_is_gone() {
 /// Seepage has to work on a scene with no motion in it at all, because that is the scene it
 /// happens in: water sitting still on sand that has finished settling.
 ///
-/// Chunk sleep is a *motion* predicate, so a sealed pocket of water inside a sand block puts
-/// every chunk to sleep within `SLEEP_TICKS` and never wakes them. The wet rules ride the
-/// damp set for exactly this reason; absorption and capillary used to ride the awake set,
-/// which meant a still pool was a permanently still pool.
+/// Chunk sleep is a *motion* predicate, so a still pool of water resting on sand puts every
+/// chunk to sleep within `SLEEP_TICKS` and never wakes them. The wet rules ride the damp set
+/// for exactly this reason; absorption and capillary used to ride the awake set, which meant
+/// a still pool was a permanently still pool.
+///
+/// The water sits *on* the sand under a stone lid rather than buried inside it: sand fine
+/// enough to entrain (see `ENTRAIN_GRAIN_UM`) clouds into any water directly below or
+/// diagonally below it, so a bare pocket surrounded by sand is no longer motionless — the
+/// grains above it would rain in. The lid puts a non-powder ceiling over the pool so nothing
+/// can fall into it, which is the still scene this test is actually about.
 #[test]
 fn a_sealed_pool_still_soaks_into_the_sand_around_it() {
     let t = table();
     let lut = lut();
     let water = id(&t, "water");
     let sand = id(&t, "sand");
+    let stone = id(&t, "stone");
 
     let mut layer = Layer::new(64, 64, LayerSlot::Plant, 11);
     for y in 8..56u16 {
@@ -856,11 +924,14 @@ fn a_sealed_pool_still_soaks_into_the_sand_around_it() {
             layer.set_mat(x, y, sand);
         }
     }
-    // a pocket in the middle: no free face, so nothing can ever move
-    for y in 28..32u16 {
-        for x in 28..32u16 {
-            layer.set_mat(x, y, water);
-        }
+    // a stone lid one cell wider than the pool on each side, so no grain sits above or
+    // diagonally above the water and nothing can fall into it
+    for x in 19..=45u16 {
+        layer.set_mat(x, 29, stone);
+    }
+    // the pool: a strip resting on the sand under the lid, no free face, so nothing moves
+    for x in 20..45u16 {
+        layer.set_mat(x, 30, water);
     }
     let poured = layer.mat.iter().filter(|&&m| m == water).count();
 
