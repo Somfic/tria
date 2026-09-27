@@ -10,9 +10,7 @@ use pixelsim::{ActiveLayer, Materials, Sim};
 
 use crate::bake::{BakeCtx, Cast, LayerCanvas};
 use crate::cursor::{cell_distance, plane_hit, world_to_cell};
-use crate::depth::{
-    Perspective, active_distance, focal_px, shimmer_safe_blur_px,
-};
+use crate::depth::{Perspective, active_distance, focal_px, shimmer_safe_blur_px};
 use crate::palette::Palette;
 use crate::schematic::bake_schematic;
 use crate::slab::cast_offset;
@@ -283,8 +281,10 @@ pub fn bake_layers(
 
         let lip = if slabs && config.extrude.px > 0.0 {
             // a cavity is a seam, not a room: half the lip, so it does not read as a slab
-            let scale = if matches!(slot, pixelsim::LayerSlot::Cavity | pixelsim::LayerSlot::Cavity)
-            {
+            let scale = if matches!(
+                slot,
+                pixelsim::LayerSlot::Cavity | pixelsim::LayerSlot::Cavity
+            ) {
                 0.5
             } else {
                 1.0
@@ -306,7 +306,9 @@ pub fn bake_layers(
                 cast: caster,
                 // a *minified* plane gets its low-pass whether or not the art asked for
                 // one; zoomed in, where every plane is magnified, this is 0
-                min_blur_px: shimmer_safe_blur_px(crate::zoom::snapped(zoom.current) * geom.ratio(i)),
+                min_blur_px: shimmer_safe_blur_px(
+                    crate::zoom::snapped(zoom.current) * geom.ratio(i),
+                ),
             },
         );
 
@@ -463,7 +465,11 @@ pub fn update_view_geometry(
     geom.ratios.clear();
     for i in 0..sim.layers.len() {
         let gap = active_z - geom.plane_z[i];
-        geom.ratios.push(if gap.abs() < 1.0e-6 { 1.0 } else { d / (d + gap) });
+        geom.ratios.push(if gap.abs() < 1.0e-6 {
+            1.0
+        } else {
+            d / (d + gap)
+        });
     }
 }
 

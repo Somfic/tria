@@ -82,10 +82,7 @@ pub fn build_layers(mut commands: Commands, config: Res<SimConfig>) {
     // where sculpting lands and what the camera is dollied to keep pixel-exact, so starting
     // on the thin decorative Face slab means the player opens the game unable to touch
     // anything that matters.
-    let plant = layers
-        .iter()
-        .position(|l| l.slot.simulated())
-        .unwrap_or(0);
+    let plant = layers.iter().position(|l| l.slot.simulated()).unwrap_or(0);
     commands.insert_resource(ActiveLayer(plant));
 
     commands.insert_resource(Sim {

@@ -387,7 +387,9 @@ fn absorb_cell(
             break;
         }
     }
-    let Some((cx, cy)) = contact else { return false };
+    let Some((cx, cy)) = contact else {
+        return false;
+    };
 
     // A whole liquid cell is worth ABSORB_UNITS of wetness, so absorbing into a patch
     // with less free capacity than that throws water away. Without this guard a
@@ -500,13 +502,7 @@ pub(crate) fn patch_capacity(l: &Layer, table: &MaterialTable, x: u16, y: u16) -
 
 /// Greedy fill of `(x, y)` to 255, surplus spread over the 8 neighbours, remainder
 /// abandoned. No allocation, no queue.
-pub(crate) fn inject_wetness(
-    l: &mut Layer,
-    table: &MaterialTable,
-    x: u16,
-    y: u16,
-    mut units: u32,
-) {
+pub(crate) fn inject_wetness(l: &mut Layer, table: &MaterialTable, x: u16, y: u16, mut units: u32) {
     // Nothing here assumes the cells are absorbent, the centre least of all: a cell that has
     // just been emptied gets its soak paid out through this, and dumping wetness into a hole
     // would put water somewhere that cannot hold it and that nothing will ever dry.

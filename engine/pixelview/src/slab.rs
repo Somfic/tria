@@ -202,7 +202,12 @@ pub fn chunk_cell_rect(chunk: u32, cw: usize, w: u16, h: u16) -> Option<(u16, u1
     if x0 >= w || y0 >= h {
         return None;
     }
-    Some((x0, y0, (x0 + CHUNK_PX - 1).min(w - 1), (y0 + CHUNK_PX - 1).min(h - 1)))
+    Some((
+        x0,
+        y0,
+        (x0 + CHUNK_PX - 1).min(w - 1),
+        (y0 + CHUNK_PX - 1).min(h - 1),
+    ))
 }
 
 /// The lip pass, per pixel: is this air cell inside the lip thrown by a solid cell, and
@@ -213,7 +218,13 @@ pub fn chunk_cell_rect(chunk: u32, cw: usize, w: u16, h: u16) -> Option<(u16, u1
 /// air cell — rather than forward from every solid cell — is what keeps this a read-only
 /// gather that a tile bake can run without touching its neighbours' pixels.
 #[inline]
-pub fn lip_at(layer: &Layer, cfg: &ExtrudeConfig, x: u16, y: u16, depth: f32) -> Option<(u16, u16, f32)> {
+pub fn lip_at(
+    layer: &Layer,
+    cfg: &ExtrudeConfig,
+    x: u16,
+    y: u16,
+    depth: f32,
+) -> Option<(u16, u16, f32)> {
     let n = depth.round() as i32;
     if n <= 0 {
         return None;
@@ -301,7 +312,10 @@ mod tests {
         // lip is thinner than `depth` suggests, because the direction is not axis-aligned.
         let near = lip_at(&l, &cfg, 25, 30, 3.0).map(|(_, _, s)| s).unwrap();
         let far = lip_at(&l, &cfg, 25, 31, 3.0).map(|(_, _, s)| s).unwrap();
-        assert!(far > near, "deeper into the lip must be darker: {near} vs {far}");
+        assert!(
+            far > near,
+            "deeper into the lip must be darker: {near} vs {far}"
+        );
     }
 
     /// A cast is displaced further for a caster further in front, or the stack has no

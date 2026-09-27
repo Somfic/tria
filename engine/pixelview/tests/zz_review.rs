@@ -226,7 +226,10 @@ fn blur_alone() {
     // ~2.4 ns/px on an M1: memory-bound, so the split buys 1.6x and not the 4.5x the tap
     // count suggests. The real saving is `split_bake_and_upload`'s rear bake, which now
     // skips the blur entirely when nothing is dirty (12.36 ms -> 0.12 ms).
-    assert!(ms < 6.5, "blur {ms:.2} ms/call, was 8.30 ms before the split");
+    assert!(
+        ms < 6.5,
+        "blur {ms:.2} ms/call, was 8.30 ms before the split"
+    );
 }
 
 // ---------------------------------------------------------------- perspective wiring
@@ -293,13 +296,24 @@ fn the_geometry_system_produces_a_real_perspective_stack() {
         );
     }
     // planes in front of the player are larger than 1.0, or the stack reads inside-out
-    assert!(geom.ratio(0) > 1.0, "front plane {} is not larger", geom.ratio(0));
+    assert!(
+        geom.ratio(0) > 1.0,
+        "front plane {} is not larger",
+        geom.ratio(0)
+    );
     // and the spread is big enough to actually see
     let spread = geom.ratio(0) - geom.ratio(slots.len() - 1);
-    assert!(spread > 0.05, "the whole stack spans only {spread:.3} of scale");
+    assert!(
+        spread > 0.05,
+        "the whole stack spans only {spread:.3} of scale"
+    );
 
     // gaps are measured in sim px, from the contiguous slab stack
-    assert!((geom.gap(0, 2) - 2.0 * SLAB_DEPTH_PX).abs() < 1e-3, "gap was {}", geom.gap(0, 2));
+    assert!(
+        (geom.gap(0, 2) - 2.0 * SLAB_DEPTH_PX).abs() < 1e-3,
+        "gap was {}",
+        geom.gap(0, 2)
+    );
 }
 
 /// Turning perspective off has to give back exactly the flat stack, so the spike's `F1`
@@ -340,7 +354,11 @@ fn perspective_off_is_exactly_flat() {
             geom.ratio(i)
         );
     }
-    assert!(geom.plane_z[2] > -2.0, "the stack did not collapse: {:?}", geom.plane_z);
+    assert!(
+        geom.plane_z[2] > -2.0,
+        "the stack did not collapse: {:?}",
+        geom.plane_z
+    );
 }
 
 /// Slab depth is a live knob, and `depth_scale` is how it is turned. It used to multiply a
@@ -349,20 +367,39 @@ fn perspective_off_is_exactly_flat() {
 #[test]
 fn depth_scale_actually_changes_the_z_step() {
     let base = Perspective::default();
-    let half = Perspective { depth_scale: 0.5, ..base };
-    let deep = Perspective { depth_scale: 2.0, ..base };
+    let half = Perspective {
+        depth_scale: 0.5,
+        ..base
+    };
+    let deep = Perspective {
+        depth_scale: 2.0,
+        ..base
+    };
     assert!(
         (half.depth() - base.depth() * 0.5).abs() < 1e-4,
         "halving the scale gave {} against {}",
         half.depth(),
         base.depth()
     );
-    assert!(deep.depth() > base.depth(), "exaggerating the stack did nothing");
+    assert!(
+        deep.depth() > base.depth(),
+        "exaggerating the stack did nothing"
+    );
     // and it may never collapse the stack into a z-fight, however far down it is turned
-    let flat = Perspective { depth_scale: 0.0, ..base };
-    assert!(flat.depth() >= FLAT_DEPTH_PX, "zero scale produced coplanar slabs");
+    let flat = Perspective {
+        depth_scale: 0.0,
+        ..base
+    };
+    assert!(
+        flat.depth() >= FLAT_DEPTH_PX,
+        "zero scale produced coplanar slabs"
+    );
     // perspective off still wins: the A/B is a control, not a suggestion
-    let off = Perspective { enabled: false, depth_scale: 4.0, ..base };
+    let off = Perspective {
+        enabled: false,
+        depth_scale: 4.0,
+        ..base
+    };
     assert_eq!(off.depth(), FLAT_DEPTH_PX);
 }
 
@@ -426,8 +463,14 @@ fn changing_the_depth_remeshes_slabs_the_sim_never_dirtied() {
         ports: Vec::new(),
         gas: GasPlane::new(64, 64),
     });
-    world.insert_resource(LayerCanvases { canvases, schematic });
-    world.insert_resource(Perspective { depth_scale: 0.25, ..perspective });
+    world.insert_resource(LayerCanvases {
+        canvases,
+        schematic,
+    });
+    world.insert_resource(Perspective {
+        depth_scale: 0.25,
+        ..perspective
+    });
     world.insert_resource(SlabGeometry {
         materials: Vec::new(),
         buf: MeshBuf::default(),

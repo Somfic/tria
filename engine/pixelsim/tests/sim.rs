@@ -353,7 +353,10 @@ fn water_climbs_the_far_arm_of_a_u_tube() {
     let layer = &layers[0];
 
     let after = layer.mat.iter().filter(|&&m| m == water).count() as u32;
-    assert_eq!(before, after, "water was created or destroyed equalising a U-tube");
+    assert_eq!(
+        before, after,
+        "water was created or destroyed equalising a U-tube"
+    );
 
     // surface row of each shaft = topmost water cell in it (smaller row = higher)
     let surface = |xs: std::ops::Range<u16>| -> Option<u16> {
@@ -894,7 +897,10 @@ fn a_pool_seeps_into_a_deep_bed_until_it_is_gone() {
         .rev()
         .find(|&y| (0..128u16).any(|x| layer.wetness[layer.idx(x, y)] > 0))
         .unwrap();
-    assert!(front >= 114, "wetting front only reached row {front} of 115");
+    assert!(
+        front >= 114,
+        "wetting front only reached row {front} of 115"
+    );
 }
 
 /// Seepage has to work on a scene with no motion in it at all, because that is the scene it
@@ -973,7 +979,12 @@ fn drainage_is_gravity_and_stops_at_field_capacity() {
     layer.wetness[top] = 255;
     let held = layer.idx(36, 20);
     layer.wetness[held] = FIELD_CAPACITY;
-    let r = CellRect { x0: 0, y0: 0, x1: 63, y1: 63 };
+    let r = CellRect {
+        x0: 0,
+        y0: 0,
+        x1: 63,
+        y1: 63,
+    };
     layer.chunks.wake_rect(r);
 
     // one pass: exactly one transfer of the documented size, one row down and no further
@@ -996,7 +1007,9 @@ fn drainage_is_gravity_and_stops_at_field_capacity() {
         layer.chunks.wake_rect(r);
         drain(&mut layer, &t);
     }
-    let column: Vec<u8> = (20..30u16).map(|y| layer.wetness[layer.idx(30, y)]).collect();
+    let column: Vec<u8> = (20..30u16)
+        .map(|y| layer.wetness[layer.idx(30, y)])
+        .collect();
     println!("column after draining: {column:?}");
     // no cell holds more than gravity allows...
     for (k, &w) in column.iter().enumerate() {
@@ -1008,7 +1021,10 @@ fn drainage_is_gravity_and_stops_at_field_capacity() {
     }
     // ...every unit is still in the column — drainage moves water, it does not spend it...
     let total: u32 = column.iter().map(|&w| w as u32).sum();
-    assert_eq!(total, 255, "column holds {total} of the 255 units it started with");
+    assert_eq!(
+        total, 255,
+        "column holds {total} of the 255 units it started with"
+    );
     // ...and it left a damp trail rather than dumping everything on one row
     let damp_rows = column.iter().filter(|&&w| w > 0).count();
     assert!(
@@ -1032,7 +1048,12 @@ fn a_dry_vessel_prunes_itself_out_of_the_wet_pass() {
 
     let mut layer = Layer::new(128, 128, LayerSlot::Plant, 13);
     layer.fill(stone);
-    let r = CellRect { x0: 0, y0: 0, x1: 127, y1: 127 };
+    let r = CellRect {
+        x0: 0,
+        y0: 0,
+        x1: 127,
+        y1: 127,
+    };
     layer.chunks.wake_rect(r);
 
     let mut layers = vec![layer];
@@ -1050,10 +1071,7 @@ fn a_dry_vessel_prunes_itself_out_of_the_wet_pass() {
 /// scene where nothing can change. The wet fuse drops an idle chunk to one visit in
 /// `WET_IDLE_EVERY` ticks, and any edit re-arms it.
 #[test]
-#[cfg_attr(
-    debug_assertions,
-    ignore = "wall-clock; run in --release"
-)]
+#[cfg_attr(debug_assertions, ignore = "wall-clock; run in --release")]
 fn a_settled_flood_is_cheap_to_keep_wet() {
     let t = table();
     let lut = lut();
@@ -1187,10 +1205,12 @@ fn a_cardboard_cup_goes_soggy_and_gives_way() {
         }
     }
 
-    let below_the_cup =
-        |l: &Layer| (floor + 2..h - 1).flat_map(|y| (0..w).map(move |x| (x, y)))
+    let below_the_cup = |l: &Layer| {
+        (floor + 2..h - 1)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
             .filter(|&(x, y)| l.mat_at(x, y) == water)
-            .count();
+            .count()
+    };
     let count = |l: &Layer, m: u8| l.mat.iter().filter(|&&v| v == m).count();
     let wettest = |l: &Layer, m: u8| {
         (0..l.mat.len())
@@ -1234,7 +1254,11 @@ fn a_cardboard_cup_goes_soggy_and_gives_way() {
     // and eventually the floor gives way and the water goes through it
     let mut burst_at = None;
     // the deepest cardboard cell anywhere, i.e. how far the floor has drooped
-    let lowest = |l: &Layer| (0..h).rev().find(|&y| (0..w).any(|x| l.mat_at(x, y) == card));
+    let lowest = |l: &Layer| {
+        (0..h)
+            .rev()
+            .find(|&y| (0..w).any(|x| l.mat_at(x, y) == card))
+    };
     let floor0 = lowest(&layers[0]).unwrap();
 
     for tick in 301..=4000u64 {
@@ -1259,7 +1283,10 @@ fn a_cardboard_cup_goes_soggy_and_gives_way() {
     );
     assert!(burst_at.is_some(), "the soaked board never sagged");
     assert!(droop > 0, "the floor did not droop");
-    assert!(leaked > 0, "the floor sagged away but no water came through");
+    assert!(
+        leaked > 0,
+        "the floor sagged away but no water came through"
+    );
 
     // The layer that touches the water must not be the stiff one.
     //
@@ -1953,10 +1980,7 @@ fn the_plugin_builds_and_steps_a_real_app() {
     let deck_rows: Vec<u16> = (0..128u16)
         .filter(|&y| (0..256u16).any(|x| sim.layer(1).mat_at(x, y) != 0))
         .collect();
-    assert!(
-        !deck_rows.is_empty(),
-        "the sand vanished from the Plant"
-    );
+    assert!(!deck_rows.is_empty(), "the sand vanished from the Plant");
     assert!(
         deck_rows[0] >= 112,
         "sand is still high up the Plant, topmost row {}",

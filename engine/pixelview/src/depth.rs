@@ -251,7 +251,10 @@ mod tests {
             if zoom >= 1.0 {
                 assert_eq!(blur, 0.0, "magnified active plane blurred at zoom {zoom}");
             } else {
-                assert!(blur > 0.0, "minified active plane unfiltered at zoom {zoom}");
+                assert!(
+                    blur > 0.0,
+                    "minified active plane unfiltered at zoom {zoom}"
+                );
             }
         }
     }
@@ -296,11 +299,17 @@ mod tests {
         let gap = 4.0 * crate::solid::SLAB_DEPTH_PX;
         let close = plane_ratio(active_distance(f, 8.0), gap);
         let far = plane_ratio(active_distance(f, 0.4), gap);
-        assert!(close < far, "close-up must foreshorten more: {close} vs {far}");
+        assert!(
+            close < far,
+            "close-up must foreshorten more: {close} vs {far}"
+        );
         // the diagram end of the zoom is flat enough that perspective cannot fight the
         // schematic for legibility
         assert!(far > 0.95, "vessel scale should be nearly flat, got {far}");
-        assert!(close < 0.9, "close-up should be clearly foreshortened, got {close}");
+        assert!(
+            close < 0.9,
+            "close-up should be clearly foreshortened, got {close}"
+        );
     }
 
     /// A *minified* plane must always get at least the bake's minimum blur, or nearest

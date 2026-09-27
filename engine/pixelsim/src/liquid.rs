@@ -302,9 +302,7 @@ pub fn equalize_levels(layer: &mut Layer, table: &MaterialTable) {
         for y in r.y0..=r.y1 {
             for x in r.x0..=r.x1 {
                 let seed = y as usize * stride + x as usize;
-                if visited.get(seed)
-                    || table.class(layer.mat[seed]) != MaterialClass::Liquid
-                {
+                if visited.get(seed) || table.class(layer.mat[seed]) != MaterialClass::Liquid {
                     continue;
                 }
 
@@ -318,9 +316,7 @@ pub fn equalize_levels(layer: &mut Layer, table: &MaterialTable) {
                     let cx = i % stride;
                     let cy = i / stride;
                     let mut visit = |ni: usize| {
-                        if !visited.get(ni)
-                            && table.class(layer.mat[ni]) == MaterialClass::Liquid
-                        {
+                        if !visited.get(ni) && table.class(layer.mat[ni]) == MaterialClass::Liquid {
                             visited.set(ni);
                             stack.push(ni);
                         }

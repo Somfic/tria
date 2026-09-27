@@ -459,7 +459,11 @@ impl LayerCanvas {
                 let (cx1, cy1) = (g.2 / CHUNK_PX, g.3 / CHUNK_PX);
                 for cy in cy0..=cy1 {
                     for cx in cx0..=cx1 {
-                        mark(cy as usize * cw + cx as usize, &mut self.touch_set, &mut marked);
+                        mark(
+                            cy as usize * cw + cx as usize,
+                            &mut self.touch_set,
+                            &mut marked,
+                        );
                     }
                 }
             }
@@ -552,7 +556,8 @@ impl LayerCanvas {
         } else {
             for i in 0..self.touched.len() {
                 let r = self.touched[i];
-                self.upload.add(if blur { grow(r, tw, th) } else { r }, area);
+                self.upload
+                    .add(if blur { grow(r, tw, th) } else { r }, area);
             }
         }
 
@@ -596,7 +601,12 @@ impl LayerCanvas {
     /// Invalidate a rect from outside: something that is not this layer's own cells changed
     /// what its pixels should look like. The next bake treats it exactly like a dirty tile.
     pub fn mark_dirty_rect(&mut self, r: Rect) {
-        let r = (r.0.min(self.w - 1), r.1.min(self.h - 1), r.2.min(self.w - 1), r.3.min(self.h - 1));
+        let r = (
+            r.0.min(self.w - 1),
+            r.1.min(self.h - 1),
+            r.2.min(self.w - 1),
+            r.3.min(self.h - 1),
+        );
         self.extra.push(r);
     }
 
@@ -912,7 +922,14 @@ fn bake_rect(
 /// it must run after [`bake_rect`] over the same rect. It writes only where the cell is
 /// air, so it can never overwrite a real cell — the lip lives in the space the cutaway was
 /// showing through, which is exactly where a real slab's side face would be.
-fn extrude_rect(rgba: &mut [u8], tw: u16, rect: Rect, layer: &Layer, cfg: &ExtrudeConfig, depth: f32) {
+fn extrude_rect(
+    rgba: &mut [u8],
+    tw: u16,
+    rect: Rect,
+    layer: &Layer,
+    cfg: &ExtrudeConfig,
+    depth: f32,
+) {
     if depth < 1.0 {
         return;
     }
@@ -993,7 +1010,11 @@ fn cast_rect(rgba: &mut [u8], tw: u16, rect: Rect, cast: &Cast) {
                         if rgba[o + 3] == 0 {
                             continue;
                         }
-                        let (r, g, b) = (rgba[o] as f32 * k, rgba[o + 1] as f32 * k, rgba[o + 2] as f32 * k);
+                        let (r, g, b) = (
+                            rgba[o] as f32 * k,
+                            rgba[o + 1] as f32 * k,
+                            rgba[o + 2] as f32 * k,
+                        );
                         rgba[o] = (r + (crate::treat::FOG[0] * 255.0 - r) * tint) as u8;
                         rgba[o + 1] = (g + (crate::treat::FOG[1] * 255.0 - g) * tint) as u8;
                         rgba[o + 2] = (b + (crate::treat::FOG[2] * 255.0 - b) * tint) as u8;
@@ -1355,9 +1376,19 @@ mod tests {
 
         for (name, tr, outline, tint) in [
             ("depth 0", LayerTreatment::at_depth(0), false, false),
-            ("depth 0 active", LayerTreatment::at_depth(0).emphasized(1.0, LayerTreatment::at_depth(0)), false, false),
+            (
+                "depth 0 active",
+                LayerTreatment::at_depth(0).emphasized(1.0, LayerTreatment::at_depth(0)),
+                false,
+                false,
+            ),
             ("depth 2 blurred", LayerTreatment::at_depth(2), false, false),
-            ("depth 5 blurred half-res", LayerTreatment::at_depth(5), false, false),
+            (
+                "depth 5 blurred half-res",
+                LayerTreatment::at_depth(5),
+                false,
+                false,
+            ),
             (
                 "xray",
                 cfg.treatment_for(1, 1, pixelsim::LayerSlot::Plant, true),
@@ -1557,11 +1588,19 @@ mod slab_pass_tests {
 
         // below-right of the block: air before, opaque lip after
         assert_eq!(px(&without, 60, 81)[3], 0, "should have been air");
-        assert_eq!(px(with, 60, 81)[3], 255, "lip did not appear below the block");
+        assert_eq!(
+            px(with, 60, 81)[3],
+            255,
+            "lip did not appear below the block"
+        );
         // above-left: the light comes from there, so no lip
         assert_eq!(px(with, 60, 38)[3], 0, "lip appeared on the lit side");
         // inside the block: untouched
-        assert_eq!(px(&without, 60, 60), px(with, 60, 60), "lip overwrote a real cell");
+        assert_eq!(
+            px(&without, 60, 60),
+            px(with, 60, 60),
+            "lip overwrote a real cell"
+        );
         // and it is darker than the face it came from
         let face = px(with, 60, 79);
         let lip = px(with, 60, 81);
@@ -1631,7 +1670,10 @@ mod slab_pass_tests {
 
         let at = |buf: &[u8], x: usize, y: usize| {
             let o = (y * 128 + x) * 4;
-            (buf[o] as u32 + buf[o + 1] as u32 + buf[o + 2] as u32, buf[o + 3])
+            (
+                buf[o] as u32 + buf[o + 1] as u32 + buf[o + 2] as u32,
+                buf[o + 3],
+            )
         };
 
         // under the caster: darker
@@ -1702,20 +1744,28 @@ mod slab_pass_tests {
         let mut canvas = LayerCanvas::new(&mut images, 128, 128, false, true);
         canvas.bake_ctx(&mut front, &ctx(&t, &pal, &treat, None, None));
         canvas.update_mask(&front, 2);
-        assert!(canvas.caster_rects().len() >= 1, "a cold bake casts everywhere");
+        assert!(
+            canvas.caster_rects().len() >= 1,
+            "a cold bake casts everywhere"
+        );
 
         // move one cell and rebake: the caster footprint must name that cell's tile
         front.set_mat(60, 60, 0);
         canvas.bake_ctx(&mut front, &ctx(&t, &pal, &treat, None, None));
         let rects = canvas.caster_rects();
         assert!(
-            rects.iter().any(|r| (r.0..=r.2).contains(&60) && (r.1..=r.3).contains(&60)),
+            rects
+                .iter()
+                .any(|r| (r.0..=r.2).contains(&60) && (r.1..=r.3).contains(&60)),
             "the changed cell is not in the caster footprint: {rects:?}"
         );
         // and the mask followed it
         canvas.update_mask(&front, 0);
         assert!(
-            canvas.mask().sample(60.0 / MASK_DIV as f32, 60.0 / MASK_DIV as f32) < 1.0,
+            canvas
+                .mask()
+                .sample(60.0 / MASK_DIV as f32, 60.0 / MASK_DIV as f32)
+                < 1.0,
             "mask still reports that cell as fully solid"
         );
     }

@@ -511,11 +511,7 @@ impl PixelTreat {
             m,
             luma_lo: t.luma_lo,
             luma_span: t.luma_hi - t.luma_lo,
-            fog: [
-                t.fog[0] * 255.0,
-                t.fog[1] * 255.0,
-                t.fog[2] * 255.0,
-            ],
+            fog: [t.fog[0] * 255.0, t.fog[1] * 255.0, t.fog[2] * 255.0],
             fog_k: t.fog_amount.clamp(0.0, 1.0),
         }
     }
@@ -658,7 +654,10 @@ mod tests {
                 "adjacent slots differ by only {}",
                 near.luma_hi - far.luma_hi
             );
-            assert!(far.bake_hz <= near.bake_hz, "motion must not increase with depth");
+            assert!(
+                far.bake_hz <= near.bake_hz,
+                "motion must not increase with depth"
+            );
         }
     }
 
