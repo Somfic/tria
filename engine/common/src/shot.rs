@@ -12,6 +12,9 @@
 //! the prefix in one place, so `shot.parse::<f64>("WARP")` reads
 //! `<PREFIX>_WARP` without the app repeating it.
 //!
+//! Or, for an app that reads its own command line, [`ShotPlugin::at`] with
+//! the path and frame already in hand, and no variables read at all.
+//!
 //! Nothing is inserted when the harness is off, so app staging should take
 //! `Option<Res<Shot>>` and do nothing when it is absent. That is the right
 //! behaviour anyway: these variables should only bite a capture run.
@@ -34,6 +37,8 @@ pub struct Harness;
 
 pub struct ShotPlugin {
     prefix: String,
+    /// Path and frame given directly, rather than read from the variables.
+    given: Option<(String, u32)>,
 }
 
 impl ShotPlugin {
@@ -41,6 +46,16 @@ impl ShotPlugin {
     pub fn new(prefix: &str) -> Self {
         ShotPlugin {
             prefix: prefix.to_owned(),
+            given: None,
+        }
+    }
+
+    /// Capture frame `at` (`None`: the default) to `path`, reading no
+    /// variables; [`Shot::var`] and its kin then find nothing.
+    pub fn at(path: impl Into<String>, at: Option<u32>) -> Self {
+        ShotPlugin {
+            prefix: String::new(),
+            given: Some((path.into(), at.unwrap_or(DEFAULT_FRAME))),
         }
     }
 }
@@ -48,13 +63,19 @@ impl ShotPlugin {
 impl Plugin for ShotPlugin {
     fn build(&self, app: &mut App) {
         let prefix = self.prefix.clone();
-        let Ok(path) = std::env::var(format!("{prefix}_SCREENSHOT")) else {
-            return;
+        let (path, at) = match &self.given {
+            Some((path, at)) => (path.clone(), *at),
+            None => {
+                let Ok(path) = std::env::var(format!("{prefix}_SCREENSHOT")) else {
+                    return;
+                };
+                let at = std::env::var(format!("{prefix}_SCREENSHOT_FRAME"))
+                    .ok()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(DEFAULT_FRAME);
+                (path, at)
+            }
         };
-        let at = std::env::var(format!("{prefix}_SCREENSHOT_FRAME"))
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(DEFAULT_FRAME);
 
         app.insert_resource(Shot {
             prefix,
@@ -93,8 +114,12 @@ impl Shot {
         self.frame == self.at
     }
 
-    /// One of this harness's variables, without the prefix.
+    /// One of this harness's variables, without the prefix. Never any for
+    /// a harness built with [`ShotPlugin::at`].
     pub fn var(&self, name: &str) -> Option<String> {
+        if self.prefix.is_empty() {
+            return None;
+        }
         std::env::var(format!("{}_{name}", self.prefix)).ok()
     }
 
