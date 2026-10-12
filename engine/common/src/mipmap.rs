@@ -48,10 +48,10 @@ fn generate(mut pending: ResMut<Pending>, mut images: ResMut<Assets<Image>>) {
     }
 
     pending.0.retain(|handle| {
-        let Some(image) = images.get_mut(handle) else {
+        let Some(mut image) = images.get_mut(handle) else {
             return true; // still loading
         };
-        match build(image) {
+        match build(&mut image) {
             Ok(()) => debug!(
                 "{} mip levels for {handle:?}",
                 image.texture_descriptor.mip_level_count
