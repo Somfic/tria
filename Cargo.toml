@@ -4,6 +4,7 @@ members = ["engine/*", "examples/*"]
 
 [workspace.dependencies]
 common = { path = "engine/common" }
+registry = { path = "engine/registry" }
 goap = { path = "engine/goap" }
 perception = { path = "engine/perception" }
 pixelsim = { path = "engine/pixelsim" }

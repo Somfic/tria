@@ -1895,6 +1895,7 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "registry",
  "serde",
  "serde_json",
 ]
@@ -4207,6 +4208,10 @@ name = "regex-syntax"
 version = "0.8.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
+
+[[package]]
+name = "registry"
+version = "0.1.0"
 
 [[package]]
 name = "renderdoc-sys"
